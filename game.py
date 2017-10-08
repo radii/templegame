@@ -1,15 +1,11 @@
 #!/usr/bin/env python
 
+import optparse
 import pygame
 import time
 
-pygame.init()
-
-# surf = pygame.display.set_mode((800, 600), pygame.FULLSCREEN)
-surf = pygame.display.set_mode((800, 600))
-surf.fill((255,255,255))
-
 allkeys = []
+surf = None
 
 def update_img(img_id):
     filename = "img/" + img_id
@@ -37,15 +33,38 @@ def keydown(s):
     else:
         allkeys.append(s.encode('UTF8'))
 
-update_img("default")
-mainloop = True
-while mainloop:
-    for event in pygame.event.get():
-        print "got event %r" % ((event,event.type, pygame.QUIT),)
-        if event.type == pygame.QUIT:
-            mainloop = False
-        if event.type == pygame.KEYDOWN:
-            keydown(event.unicode)
-    pygame.display.update()
+def run_game(opts):
+    global surf
+    pygame.init()
 
-pygame.quit()
+    if opts.full:
+        surf = pygame.display.set_mode((800, 600), pygame.FULLSCREEN)
+    else:
+        surf = pygame.display.set_mode((800, 600))
+    surf.fill((255,255,255))
+
+    update_img("default")
+    mainloop = True
+    while mainloop:
+        for event in pygame.event.get():
+            print "got event %r" % ((event,event.type, pygame.QUIT),)
+            if event.type == pygame.QUIT:
+                mainloop = False
+            if event.type == pygame.KEYDOWN:
+                keydown(event.unicode)
+        pygame.display.update()
+
+    pygame.quit()
+
+
+def main():
+    parser = optparse.OptionParser()
+    parser.add_option('-f', '--full', action='store_true')
+
+    (opts, args) = parser.parse_args()
+
+    run_game(opts)
+
+
+if __name__ == '__main__':
+    main()
