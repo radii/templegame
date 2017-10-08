@@ -19,22 +19,27 @@ def update_img(img_id):
         surf.blit(img,(0,0))
         pygame.display.flip() # update the display
         pygame.display.update()
+mainloop = True
 
 def keydown(s):
     '''called by mainloop when a key is pressed.  Takes a string representing
     the key that was pressed.'''
     global allkeys
+    global mainloop
     print "keydown got %r" % s
     if s == '\r':
         tag = ''.join(allkeys)
         print(tag)
         update_img(tag)
         allkeys = []
+    elif s == 'q' or s == 'Q':
+        mainloop = False
     else:
         allkeys.append(s.encode('UTF8'))
 
 def run_game(opts):
     global surf
+    global mainloop
     pygame.init()
 
     if opts.full:
@@ -44,7 +49,6 @@ def run_game(opts):
     surf.fill((255,255,255))
 
     update_img("default")
-    mainloop = True
     while mainloop:
         for event in pygame.event.get():
             print "got event %r" % ((event,event.type, pygame.QUIT),)
