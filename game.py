@@ -4,6 +4,10 @@ import optparse
 import pygame
 import time
 
+from twisted.internet import reactor
+from twisted.internet.protocol import ClientFactory, ServerFactory
+from twisted.protocols.basic import LineReceiver
+
 allkeys = []
 surf = None
 
@@ -61,14 +65,123 @@ def run_game(opts):
     pygame.quit()
 
 
+class ChatProtocol(LineReceiver):
+
+    def __init__(self, recv):
+        self.recv = recv
+
+    def lineReceived(self,line):
+        print "lineReceived %r" % line
+        self.recv(line)
+
+    def connectionMade(self):
+        print "connection made"
+    def connectionLost(self, reason):
+        print "connection lost: %r" % reason
+
+class ChatClient(ClientFactory):
+    def __init__(self, recv):
+        self.protocol = ChatProtocol
+        self.recv = recv
+
+    def buildProtocol(self, addr):
+        global chatprotocol
+        c = ChatProtocol(self.recv)
+        chatprotocol.append(c)
+        return c
+
+chatprotocol = []
+
+def sendline(s):
+    for c in chatprotocol:
+        print "%r <- %r" % (c, s)
+        c.sendLine(s)
+
+class Client(object):
+
+    def __init__(self):
+        self.line = 'no message'
+        self.n = 0
+        self.allkeys = []
+        pygame.init()
+        self.screen = pygame.display.set_mode((200, 200))
+        reactor.callLater(0.1, self.tick)
+
+    def new_line(self, line):
+        self.line = line
+
+    def keydown(self, s):
+        print "keydown %r" % s
+        if s == '\r':
+            a = ''.join(self.allkeys)
+            self.allkeys = []
+            sendline(a)
+        else:
+            self.allkeys.append(s.encode('UTF8'))
+
+    def tick(self):
+        self.n += 1
+        self.screen.fill((0,0,0))
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                reactor.stop() # just stop somehow
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    reactor.stop() # just stop somehow
+                else:
+                    self.keydown(event.unicode)
+
+        self.screen.blit(pygame.font.SysFont('mono', 12, bold=True).render(self.line, True, (0, 255, 0)), (20,20))
+        pygame.display.flip()
+        reactor.callLater(0.1, self.tick)
+
+class ChatServer(ServerFactory):
+    def __init__(self, recv):
+        print "new ChatServer object"
+        self.protocol = ChatProtocol
+        self.recv = recv
+
+    def buildProtocol(self, addr):
+        print "buildProtocol"
+        global chatprotocol
+        c = ChatProtocol(self.recv)
+        chatprotocol.append(c)
+        return c
+
+class Server(object):
+    def __init__(self):
+        print "created Server object"
+        reactor.callLater(0.1, self.tick)
+        self.n = 0
+    def new_line(self, line):
+        print "Server new_line %r" % line
+        sendline("fromserver %r" % line)
+    def tick(self):
+        self.n += 1
+        # print "Server tick %d" % self.n
+        reactor.callLater(0.1, self.tick)
+
+def twistedclient(serveraddr):
+    c = Client()
+    reactor.connectTCP(serveraddr, 12345, ChatClient(c.new_line))
+    reactor.run()
+
+def twistedserver():
+    s = Server()
+    reactor.listenTCP(12345, ChatServer(s.new_line))
+    reactor.run()
+
 def main():
     parser = optparse.OptionParser()
     parser.add_option('-f', '--full', action='store_true')
+    parser.add_option('-s', '--server', action='store_true')
 
     (opts, args) = parser.parse_args()
 
-    run_game(opts)
-
+    if opts.server:
+        twistedserver()
+    else:
+        twistedclient(args[0])
 
 if __name__ == '__main__':
     main()
