@@ -103,11 +103,12 @@ class Server(object):
         # print "Server tick %d" % self.n
         reactor.callLater(0.1, self.tick)
 
-def twistedclient():
+def twistedclient(serverhost):
     global chatClient
     c = Client()
     chatClient = ChatClient(c.new_line)
-    reactor.connectTCP('127.0.0.1',1234, chatClient)
+    print "connecting to %r "% serverhost
+    reactor.connectTCP(serverhost,1234, chatClient)
     reactor.run()
 
 def twistedserver():
@@ -119,7 +120,7 @@ def twistedmain():
     if sys.argv[-1] == "-s":
         twistedserver()
     else:
-        twistedclient()
+        twistedclient(sys.argv[-1])
 
 if __name__ == '__main__':
     twistedmain()
