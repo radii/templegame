@@ -97,7 +97,7 @@ class Server(object):
         self.n = 0
     def new_line(self, line):
         print "Server new_line %r" % line
-        sendline("fromserver %r" % line)
+        sendline("fromserver %r I WAS FROM ELSEWHERE" % line)
     def tick(self):
         self.n += 1
         # print "Server tick %d" % self.n
