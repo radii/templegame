@@ -72,7 +72,7 @@ class ChatProtocol(LineReceiver):
 
     def lineReceived(self,line):
         print "lineReceived %r" % line
-        self.recv(line)
+        self.recv(line, self)
 
     def connectionMade(self):
         print "connection made"
@@ -107,7 +107,7 @@ class Client(object):
         self.screen = pygame.display.set_mode((200, 200))
         reactor.callLater(0.1, self.tick)
 
-    def new_line(self, line):
+    def new_line(self, line, responder):
         self.line = line
 
     def keydown(self, s):
@@ -153,9 +153,9 @@ class Server(object):
         print "created Server object"
         reactor.callLater(0.1, self.tick)
         self.n = 0
-    def new_line(self, line):
-        print "Server new_line %r" % line
-        sendline("fromserver %r" % line)
+    def new_line(self, line, responder):
+        print "Server new_line %r sending to %r" % (line, responder)
+        responder.sendLine("fromserver %r" % line)
     def tick(self):
         self.n += 1
         # print "Server tick %d" % self.n
